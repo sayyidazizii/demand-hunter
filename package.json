@@ -1,0 +1,15 @@
+{
+  "name": "demand-intelligence-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automated Lead Generation & Demand Radar Platform with Gemini AI, Supabase, and Next.js",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start",
+    "lint": "npm --prefix frontend run lint",
+    "crawler": "python crawler/pipeline.py",
+    "crawler:dry": "python crawler/pipeline.py --dry-run",
+    "test:crawler": "python -m unittest crawler/test_crawler.py"
+  }
+}
