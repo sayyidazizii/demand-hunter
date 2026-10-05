@@ -61,6 +61,9 @@ CREATE POLICY "Allow anon update if permitted"
     ON demands FOR UPDATE
     USING (true);
 
+-- Enable Supabase Realtime for instant websocket broadcasting on changes
+ALTER PUBLICATION supabase_realtime ADD TABLE demands;
+
 -- 6. Helper Function: Haversine Distance Search in SQL
 -- Calculate distance between two coordinates in kilometers and filter by radius
 CREATE OR REPLACE FUNCTION get_demands_near(

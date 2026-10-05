@@ -41,7 +41,7 @@ export default function DashboardPage() {
   // Selected Demand for Detail Modal
   const [selectedDemand, setSelectedDemand] = useState<Demand | null>(null);
 
-  // Fetch Demands from Supabase or Fallback to Initial Data
+  // Fetch Demands & Subscribe to Supabase Realtime
   const loadDemands = useCallback(async () => {
     setIsRefreshing(true);
     if (isSupabaseConfigured() && supabase) {
@@ -73,6 +73,40 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDemands();
+
+    // Supabase Realtime WebSocket Subscription
+    const client = supabase;
+    if (isSupabaseConfigured() && client) {
+      const channel = client
+        .channel("realtime-demands-live")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "demands" },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              const newItem = payload.new as Demand;
+              setDemands((prev) => {
+                if (prev.some((d) => d.id === newItem.id || (newItem.source_url && d.source_url === newItem.source_url))) {
+                  return prev.map((d) => (d.id === newItem.id ? newItem : d));
+                }
+                return [newItem, ...prev];
+              });
+            } else if (payload.eventType === "UPDATE") {
+              const updated = payload.new as Demand;
+              setDemands((prev) =>
+                prev.map((d) => (d.id === updated.id ? updated : d))
+              );
+            } else if (payload.eventType === "DELETE") {
+              setDemands((prev) => prev.filter((d) => d.id !== payload.old.id));
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        client.removeChannel(channel);
+      };
+    }
   }, [loadDemands]);
 
   // Request HTML5 Geolocation API

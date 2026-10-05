@@ -206,6 +206,8 @@ class DemandPipeline:
         print("="*70 + "\n")
 
 
+import time
+
 def main():
     parser = argparse.ArgumentParser(description="Demand Radar AI Ingestion Bot")
     parser.add_argument("--source", choices=["all", "mock", "reddit", "search"], default="mock",
@@ -214,11 +216,30 @@ def main():
                         help="Maximum posts to process (default: 10)")
     parser.add_argument("--dry-run", action="store_true",
                         help="Run AI extraction without persisting to Supabase")
+    parser.add_argument("--loop", action="store_true",
+                        help="Run crawler continuously in real-time loop")
+    parser.add_argument("--interval", type=int, default=300,
+                        help="Seconds between cycles when using --loop (default: 300s / 5 mins)")
     args = parser.parse_args()
 
     pipeline = DemandPipeline(dry_run=args.dry_run)
-    raw_items = pipeline.fetch_all(source=args.source, limit=args.limit)
-    pipeline.process_and_persist(raw_items)
+
+    if args.loop:
+        logger.info(f"Radar loop activated. Running every {args.interval} seconds. Press Ctrl+C to stop.")
+        while True:
+            try:
+                raw_items = pipeline.fetch_all(source=args.source, limit=args.limit)
+                pipeline.process_and_persist(raw_items)
+            except KeyboardInterrupt:
+                logger.info("Radar stopped by user.")
+                break
+            except Exception as e:
+                logger.error(f"Error in radar cycle: {e}")
+            logger.info(f"Cycle completed. Next scan in {args.interval} seconds...")
+            time.sleep(args.interval)
+    else:
+        raw_items = pipeline.fetch_all(source=args.source, limit=args.limit)
+        pipeline.process_and_persist(raw_items)
 
 
 if __name__ == "__main__":
